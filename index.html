@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Matiks — Brain Memory Challenge</title>
+<style>
+  :root{
+    --bg-0:#0a0e14;
+    --bg-1:#10151d;
+    --panel:#141b26;
+    --tile:#1b2330;
+    --tile-border:#242e3d;
+    --cyan:#3fe0ff;
+    --cyan-soft:#1fb6d9;
+    --cyan-glow:rgba(63,224,255,0.55);
+    --red:#ff4d5e;
+    --red-glow:rgba(255,77,94,0.55);
+    --green:#33e6a0;
+    --green-glow:rgba(51,230,160,0.55);
+    --text-hi:#eaf2fa;
+    --text-lo:#7c8aa0;
+    --font-display:'Segoe UI', system-ui, -apple-system, sans-serif;
+    --font-mono:'Consolas','SFMono-Regular',monospace;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0;padding:0;height:100%;
+    background:
+      radial-gradient(circle at 20% 0%, rgba(63,224,255,0.06), transparent 40%),
+      radial-gradient(circle at 85% 100%, rgba(51,230,160,0.05), transparent 45%),
+      var(--bg-0);
+    color:var(--text-hi);
+    font-family:var(--font-display);
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+
+  #app{
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:24px 16px 40px;
+  }
+
+  /* ---------- HEADER ---------- */
+  header{
+    width:100%;
+    max-width:520px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:6px 4px 22px;
+  }
+  .brain-icon{
+    width:42px;height:42px;flex:0 0 auto;
+    display:flex;align-items:center;justify-content:center;
+    border-radius:12px;
+    background:linear-gradient(145deg, rgba(63,224,255,0.16), rgba(63,224,255,0.03));
+    border:1px solid rgba(63,224,255,0.35);
+    box-shadow:0 0 18px rgba(63,224,255,0.18);
+  }
+  .brain-icon svg{width:24px;height:24px;stroke:var(--cyan);}
+  .brand{
+    display:flex;flex-direction:column;line-height:1.15;
+  }
+  .brand .name{
+    font-size:17px;font-weight:700;letter-spacing:0.2px;color:var(--text-hi);
+  }
+  .brand .tagline{
+    font-size:12.5px;color:var(--text-lo);font-weight:500;
+  }
+  .brand .name .accent{color:var(--cyan);}
+
+  /* ---------- STAT BAR ---------- */
+  .statbar{
+    width:100%;max-width:520px;
+    display:flex;justify-content:space-between;align-items:center;
+    padding:12px 18px;
+    margin-bottom:18px;
+    background:var(--panel);
+    border:1px solid rgba(255,255,255,0.05);
+    border-radius:16px;
+  }
+  .stat{display:flex;flex-direction:column;gap:2px;min-width:64px;}
+  .stat.center{align-items:center;}
+  .stat.right{align-items:flex-end;}
+  .stat .label{font-size:10.5px;letter-spacing:0.4px;color:var(--text-lo);}
+  .stat .value{font-size:19px;font-weight:700;font-family:var(--font-mono);}
+  .stat .value.timer{color:var(--cyan);}
+  .stat .value.timer.low{color:var(--red);animation:pulse 1s infinite;}
+  .stat .value.score{color:var(--green);}
+  .stat .value.level{color:var(--text-hi);}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.45;}}
+
+  /* ---------- STAGE ---------- */
+  .stage{
+    width:100%;max-width:520px;
+    position:relative;
+    border-radius:22px;
+    background:linear-gradient(180deg, var(--panel), var(--bg-1));
+    border:1px solid rgba(255,255,255,0.05);
+    padding:22px;
+    min-height:420px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  /* ---------- START SCREEN ---------- */
+  .start-screen{
+    display:flex;flex-direction:column;align-items:center;text-align:center;
+    gap:22px;padding:20px 10px;
+  }
+  .start-screen .big-brain{
+    width:72px;height:72px;border-radius:20px;
+    display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(circle, rgba(63,224,255,0.14), transparent 70%);
+    border:1px solid rgba(63,224,255,0.3);
+    box-shadow:0 0 30px rgba(63,224,255,0.2);
+  }
+  .start-screen .big-brain svg{width:38px;height:38px;stroke:var(--cyan);}
+  .start-screen h1{
+    font-size:22px;margin:0;font-weight:700;color:var(--text-hi);
+  }
+  .start-screen p{
+    margin:0;color:var(--text-lo);font-size:14px;max-width:320px;line-height:1.5;
+  }
+  .rules-chip{
+    display:flex;gap:18px;flex-wrap:wrap;justify-content:center;
+    margin-top:4px;
+  }
+  .rules-chip .chip{
+    background:rgba(255,255,255,0.03);
+    border:1px solid rgba(255,255,255,0.06);
+    border-radius:10px;padding:10px 14px;
+    font-size:12px;color:var(--text-lo);min-width:88px;
+  }
+  .rules-chip .chip b{display:block;color:var(--text-hi);font-size:14px;margin-bottom:2px;}
+
+  .btn-start{
+    margin-top:6px;
+    padding:15px 46px;
+    font-size:15px;font-weight:700;letter-spacing:0.5px;
+    color:#04141a;
+    background:linear-gradient(180deg, #5cf0ff, var(--cyan-soft));
+    border:none;border-radius:14px;cursor:pointer;
+    box-shadow:0 0 0 1px rgba(63,224,255,0.4), 0 8px 24px rgba(63,224,255,0.28);
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .btn-start:hover{transform:translateY(-2px);box-shadow:0 0 0 1px rgba(63,224,255,0.5), 0 12px 28px rgba(63,224,255,0.38);}
+  .btn-start:active{transform:translateY(0px) scale(0.98);}
+
+  /* ---------- GRID ---------- */
+  .grid-wrap{
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    width:100%;
+    gap:16px;
+  }
+  .status-line{
+    font-size:13px;color:var(--text-lo);min-height:18px;
+    letter-spacing:0.2px;
+  }
+  .status-line .hi{color:var(--cyan);font-weight:700;}
+
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(6, 1fr);
+    gap:9px;
+    width:100%;
+    max-width:400px;
+    aspect-ratio:1/1;
+  }
+  .tile{
+    background:var(--tile);
+    border:1px solid var(--tile-border);
+    border-radius:10px;
+    cursor:pointer;
+    position:relative;
+    transform-style:preserve-3d;
+    transition:background .15s ease, border-color .15s ease, transform .18s ease, box-shadow .18s ease;
+  }
+  .tile:hover{border-color:rgba(255,255,255,0.14);}
+  .tile.flash{
+    background:linear-gradient(160deg, #6df3ff, var(--cyan-soft));
+    border-color:var(--cyan);
+    box-shadow:0 0 18px var(--cyan-glow), inset 0 0 10px rgba(255,255,255,0.25);
+  }
+  .tile.correct{
+    background:linear-gradient(160deg, #6df3ff, var(--cyan-soft));
+    border-color:var(--cyan);
+    box-shadow:0 0 16px var(--cyan-glow);
+    animation:flipIn .32s ease;
+  }
+  .tile.wrong{
+    background:linear-gradient(160deg, #ff6b78, var(--red));
+    border-color:var(--red);
+    box-shadow:0 0 16px var(--red-glow);
+    animation:shake .32s ease;
+  }
+  @keyframes flipIn{
+    0%{transform:rotateY(0deg) scale(1);}
+    45%{transform:rotateY(90deg) scale(0.94);}
+    100%{transform:rotateY(0deg) scale(1);}
+  }
+  @keyframes shake{
+    0%,100%{transform:translateX(0);}
+    25%{transform:translateX(-4px);}
+    75%{transform:translateX(4px);}
+  }
+  .tile.locked{cursor:default;}
+
+  /* ---------- OVERLAY / MODAL ---------- */
+  .overlay{
+    position:fixed;inset:0;
+    background:rgba(5,8,13,0.78);
+    backdrop-filter:blur(6px);
+    display:none;
+    align-items:center;justify-content:center;
+    z-index:50;
+    padding:20px;
+  }
+  .modal{
+    width:100%;max-width:360px;
+    background:linear-gradient(180deg, #151d29, #0e131c);
+    border:1px solid rgba(255,77,94,0.25);
+    border-radius:22px;
+    padding:30px 26px 26px;
+    text-align:center;
+    box-shadow:0 0 60px rgba(255,77,94,0.16), 0 20px 60px rgba(0,0,0,0.5);
+    animation:pop .28s cubic-bezier(.2,.9,.3,1.3);
+  }
+  @keyframes pop{
+    0%{transform:scale(0.85);opacity:0;}
+    100%{transform:scale(1);opacity:1;}
+  }
+  .modal .defeat-tag{
+    display:inline-block;
+    font-size:12px;letter-spacing:1.5px;font-weight:700;
+    color:var(--red);
+    background:rgba(255,77,94,0.1);
+    border:1px solid rgba(255,77,94,0.3);
+    padding:5px 14px;border-radius:20px;
+    margin-bottom:14px;
+  }
+  .modal h2{
+    margin:0 0 4px;font-size:26px;font-weight:800;color:var(--text-hi);letter-spacing:0.5px;
+  }
+  .modal .sub{color:var(--text-lo);font-size:13px;margin-bottom:22px;}
+  .result-grid{
+    display:grid;grid-template-columns:1fr 1fr 1fr;
+    gap:10px;margin-bottom:26px;
+  }
+  .result-grid .box{
+    background:rgba(255,255,255,0.03);
+    border:1px solid rgba(255,255,255,0.06);
+    border-radius:12px;padding:12px 6px;
+  }
+  .result-grid .box .k{font-size:10.5px;color:var(--text-lo);margin-bottom:4px;letter-spacing:0.3px;}
+  .result-grid .box .v{font-size:17px;font-weight:800;font-family:var(--font-mono);}
+  .result-grid .box.score .v{color:var(--text-hi);}
+  .result-grid .box.xp .v{color:var(--green);}
+  .result-grid .box.rating .v{color:var(--red);}
+
+  .btn-rematch{
+    width:100%;
+    padding:15px 0;
+    font-size:15px;font-weight:700;letter-spacing:0.5px;
+    color:#04180f;
+    background:linear-gradient(180deg, #5cffc2, var(--green));
+    border:none;border-radius:14px;cursor:pointer;
+    box-shadow:0 0 0 1px rgba(51,230,160,0.4), 0 0 26px rgba(51,230,160,0.45);
+    transition:transform .15s ease;
+  }
+  .btn-rematch:hover{transform:translateY(-2px);}
+  .btn-rematch:active{transform:translateY(0) scale(0.98);}
+
+  footer{
+    margin-top:22px;color:var(--text-lo);font-size:11.5px;letter-spacing:0.2px;
+  }
+
+  @media (max-width:400px){
+    .grid{gap:7px;}
+    .stage{padding:16px;}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.001ms !important; transition-duration:0.001ms !important;}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div class="brain-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9.5 2.5a3 3 0 0 0-3 3v.3A3.2 3.2 0 0 0 4.7 8.6 3.2 3.2 0 0 0 3 11.5c0 1 .4 1.9 1.1 2.5A3.3 3.3 0 0 0 3.7 16c0 1.7 1.3 3.1 3 3.3.2 1.5 1.5 2.7 3 2.7 1.1 0 2-.6 2.5-1.5"/>
+        <path d="M14.5 2.5a3 3 0 0 1 3 3v.3a3.2 3.2 0 0 1 1.8 2.8 3.2 3.2 0 0 1 1.7 2.9c0 1-.4 1.9-1.1 2.5.4.5.6 1.2.6 1.9 0 1.7-1.3 3.1-3 3.3-.2 1.5-1.5 2.7-3 2.7-1.1 0-2-.6-2.5-1.5"/>
+        <path d="M12 5v15.5"/>
+      </svg>
+    </div>
+    <div class="brand">
+      <div class="name">Matiks <span class="accent">— Brain Memory Challenge</span></div>
+      <div class="tagline">Train your recall. Beat the clock.</div>
+    </div>
+  </header>
+
+  <div class="statbar">
+    <div class="stat">
+      <span class="label">TIME</span>
+      <span class="value timer" id="statTimer">01:00</span>
+    </div>
+    <div class="stat center">
+      <span class="label">LEVEL</span>
+      <span class="value level" id="statLevel">1</span>
+    </div>
+    <div class="stat right">
+      <span class="label">SCORE</span>
+      <span class="value score" id="statScore">0</span>
+    </div>
+  </div>
+
+  <div class="stage">
+
+    <!-- START SCREEN -->
+    <div class="start-screen" id="startScreen">
+      <div class="big-brain">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9.5 2.5a3 3 0 0 0-3 3v.3A3.2 3.2 0 0 0 4.7 8.6 3.2 3.2 0 0 0 3 11.5c0 1 .4 1.9 1.1 2.5A3.3 3.3 0 0 0 3.7 16c0 1.7 1.3 3.1 3 3.3.2 1.5 1.5 2.7 3 2.7 1.1 0 2-.6 2.5-1.5"/>
+          <path d="M14.5 2.5a3 3 0 0 1 3 3v.3a3.2 3.2 0 0 1 1.8 2.8 3.2 3.2 0 0 1 1.7 2.9c0 1-.4 1.9-1.1 2.5.4.5.6 1.2.6 1.9 0 1.7-1.3 3.1-3 3.3-.2 1.5-1.5 2.7-3 2.7-1.1 0-2-.6-2.5-1.5"/>
+          <path d="M12 5v15.5"/>
+        </svg>
+      </div>
+      <h1>Memorize the pattern</h1>
+      <p>A set of tiles will flash cyan for a moment. Tap the exact tiles from memory before the clock runs out.</p>
+      <div class="rules-chip">
+        <div class="chip"><b>60s</b>Time limit</div>
+        <div class="chip"><b>+10</b>XP per clear</div>
+        <div class="chip"><b>3</b>Wrong = defeat</div>
+      </div>
+      <button class="btn-start" id="btnStart">START GAME</button>
+    </div>
+
+    <!-- GRID SCREEN -->
+    <div class="grid-wrap" id="gridWrap">
+      <div class="status-line" id="statusLine">Watch closely<span class="hi">…</span></div>
+      <div class="grid" id="grid"></div>
+    </div>
+
+  </div>
+
+  <footer>Tap fast, think faster.</footer>
+</div>
+
+<!-- DEFEAT MODAL -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <span class="defeat-tag">DEFEAT</span>
+    <h2>Run Ended</h2>
+    <div class="sub" id="defeatReason">Time's up — memory bank closed.</div>
+    <div class="result-grid">
+      <div class="box score">
+        <div class="k">SCORE</div>
+        <div class="v" id="finalScore">0</div>
+      </div>
+      <div class="box xp">
+        <div class="k">XP</div>
+        <div class="v" id="finalXP">+0</div>
+      </div>
+      <div class="box rating">
+        <div class="k">RATING</div>
+        <div class="v" id="finalRating">-25</div>
+      </div>
+    </div>
+    <button class="btn-rematch" id="btnRematch">REMATCH</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------------- CONFIG ----------------
+  const GRID_SIZE = 6;
+  const TOTAL_TILES = GRID_SIZE * GRID_SIZE;
+  const ROUND_TIME = 60;
+  const FLASH_DURATION = 1500;
+  const MAX_WRONG = 3;
+  const BASE_PATTERN_SIZE = 3;
+  const XP_PER_CLEAR = 10;
+  const RATING_LOSS = 25;
+
+  // ---------------- STATE ----------------
+  let score = 0;
+  let level = 1;
+  let timeLeft = ROUND_TIME;
+  let timerInterval = null;
+  let pattern = [];          // indices that must be tapped
+  let foundCorrect = new Set();
+  let wrongCount = 0;
+  let inputLocked = true;    // locked during flash / between rounds
+  let gameActive = false;
+
+  // ---------------- DOM ----------------
+  const startScreen = document.getElementById('startScreen');
+  const gridWrap = document.getElementById('gridWrap');
+  const gridEl = document.getElementById('grid');
+  const statusLine = document.getElementById('statusLine');
+  const statTimer = document.getElementById('statTimer');
+  const statLevel = document.getElementById('statLevel');
+  const statScore = document.getElementById('statScore');
+  const overlay = document.getElementById('overlay');
+  const finalScore = document.getElementById('finalScore');
+  const finalXP = document.getElementById('finalXP');
+  const finalRating = document.getElementById('finalRating');
+  const defeatReason = document.getElementById('defeatReason');
+  const btnStart = document.getElementById('btnStart');
+  const btnRematch = document.getElementById('btnRematch');
+
+  // ---------------- AUDIO ----------------
+  let audioCtx = null;
+  function ensureAudio(){
+    if(!audioCtx){
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if(AC) audioCtx = new AC();
+    }
+    if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  }
+
+  function tone(freq, duration, type, gainPeak, delay){
+    if(!audioCtx) return;
+    const t0 = audioCtx.currentTime + (delay || 0);
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type || 'sine';
+    osc.frequency.setValueAtTime(freq, t0);
+    gain.gain.setValueAtTime(0.0001, t0);
+    gain.gain.linearRampToValueAtTime(gainPeak || 0.18, t0 + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(t0);
+    osc.stop(t0 + duration + 0.02);
+  }
+
+  function sfxClick(){ tone(520, 0.08, 'sine', 0.12); }
+  function sfxCorrect(){ tone(880, 0.14, 'triangle', 0.16); tone(1320, 0.16, 'sine', 0.1, 0.05); }
+  function sfxWrong(){ tone(220, 0.22, 'sawtooth', 0.14); tone(140, 0.24, 'sawtooth', 0.1, 0.04); }
+  function sfxLevelUp(){ tone(660, 0.1, 'triangle', 0.14); tone(880, 0.1, 'triangle', 0.14, 0.09); tone(1100, 0.16, 'triangle', 0.14, 0.18); }
+  function sfxDefeat(){ tone(300, 0.3, 'sawtooth', 0.13); tone(220, 0.35, 'sawtooth', 0.12, 0.12); tone(140, 0.5, 'sawtooth', 0.11, 0.26); }
+
+  // ---------------- GRID BUILD ----------------
+  function buildGrid(){
+    gridEl.innerHTML = '';
+    for(let i=0;i<TOTAL_TILES;i++){
+      const t = document.createElement('div');
+      t.className = 'tile';
+      t.dataset.index = i;
+      t.addEventListener('click', () => onTileClick(i, t));
+      gridEl.appendChild(t);
+    }
+  }
+  function getTileEl(i){
+    return gridEl.children[i];
+  }
+
+  // ---------------- GAME FLOW ----------------
+  function startGame(){
+    ensureAudio();
+    score = 0;
+    level = 1;
+    timeLeft = ROUND_TIME;
+    wrongCount = 0;
+    gameActive = true;
+    updateStats();
+    startScreen.style.display = 'none';
+    gridWrap.style.display = 'flex';
+    buildGrid();
+    startTimer();
+    nextRound();
+  }
+
+  function startTimer(){
+    clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+      timeLeft--;
+      updateTimerDisplay();
+      if(timeLeft <= 0){
+        endGame("Time's up — memory bank closed.");
+      }
+    }, 1000);
+  }
+
+  function updateTimerDisplay(){
+    const m = Math.floor(Math.max(timeLeft,0) / 60).toString().padStart(2,'0');
+    const s = Math.max(timeLeft,0) % 60;
+    const sStr = s.toString().padStart(2,'0');
+    statTimer.textContent = `${m}:${sStr}`;
+    statTimer.classList.toggle('low', timeLeft <= 10);
+  }
+
+  function updateStats(){
+    statScore.textContent = score;
+    statLevel.textContent = level;
+    updateTimerDisplay();
+  }
+
+  function patternSizeForLevel(lv){
+    return Math.min(BASE_PATTERN_SIZE + (lv - 1), 16);
+  }
+
+  function nextRound(){
+    if(!gameActive) return;
+    foundCorrect = new Set();
+    inputLocked = true;
+
+    // clear tile visuals
+    for(let i=0;i<TOTAL_TILES;i++){
+      const el = getTileEl(i);
+      el.className = 'tile locked';
+    }
+
+    // generate pattern
+    const size = patternSizeForLevel(level);
+    const indices = Array.from({length: TOTAL_TILES}, (_,i)=>i);
+    for(let i = indices.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i+1));
+      [indices[i], indices[j]] = [indices[j], indices[i]];
+    }
+    pattern = indices.slice(0, size);
+
+    statusLine.innerHTML = `Watch closely<span class="hi">…</span>`;
+
+    // flash
+    pattern.forEach(idx => getTileEl(idx).classList.add('flash'));
+
+    setTimeout(() => {
+      pattern.forEach(idx => getTileEl(idx).classList.remove('flash'));
+      for(let i=0;i<TOTAL_TILES;i++){
+        getTileEl(i).classList.remove('locked');
+      }
+      inputLocked = false;
+      statusLine.innerHTML = `Tap the <span class="hi">${pattern.length}</span> tiles you saw`;
+    }, FLASH_DURATION);
+  }
+
+  function onTileClick(i, el){
+    if(!gameActive || inputLocked) return;
+    if(el.classList.contains('correct') || el.classList.contains('wrong-locked')) return;
+
+    ensureAudio();
+
+    if(pattern.includes(i)){
+      sfxCorrect();
+      sfxClick();
+      foundCorrect.add(i);
+      el.classList.add('correct');
+      el.classList.add('locked-correct');
+
+      if(foundCorrect.size === pattern.length){
+        roundClear();
+      } else {
+        statusLine.innerHTML = `<span class="hi">${foundCorrect.size}</span> / ${pattern.length} found`;
+      }
+    } else {
+      sfxWrong();
+      wrongCount++;
+      el.classList.add('wrong');
+      inputLocked = true;
+      setTimeout(() => {
+        el.classList.remove('wrong');
+        if(gameActive) inputLocked = false;
+      }, 380);
+
+      if(wrongCount >= MAX_WRONG){
+        setTimeout(() => {
+          if(gameActive) endGame("Too many wrong taps — pattern lost.");
+        }, 260);
+      } else {
+        statusLine.innerHTML = `Not quite — <span class="hi">${MAX_WRONG - wrongCount}</span> ${MAX_WRONG - wrongCount === 1 ? 'miss' : 'misses'} left`;
+      }
+    }
+  }
+
+  function roundClear(){
+    inputLocked = true;
+    score += XP_PER_CLEAR;
+    level += 1;
+    updateStats();
+    sfxLevelUp();
+    statusLine.innerHTML = `<span class="hi">Cleared!</span> +${XP_PER_CLEAR} XP`;
+    setTimeout(() => {
+      if(gameActive) nextRound();
+    }, 700);
+  }
+
+  function endGame(reason){
+    gameActive = false;
+    inputLocked = true;
+    clearInterval(timerInterval);
+    sfxDefeat();
+
+    defeatReason.textContent = reason;
+    finalScore.textContent = score;
+    finalXP.textContent = `+${score}`;
+    finalRating.textContent = `-${RATING_LOSS}`;
+
+    overlay.style.display = 'flex';
+  }
+
+  function resetToStart(){
+    overlay.style.display = 'none';
+    gridWrap.style.display = 'none';
+    startScreen.style.display = 'flex';
+    score = 0; level = 1; timeLeft = ROUND_TIME; wrongCount = 0;
+    updateStats();
+  }
+
+  // ---------------- EVENTS ----------------
+  btnStart.addEventListener('click', startGame);
+  btnRematch.addEventListener('click', () => {
+    overlay.style.display = 'none';
+    startGame();
+  });
+
+  // init display
+  updateStats();
+
+})();
+</script>
+</body>
+</html>
